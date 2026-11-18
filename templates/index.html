@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แปลงข้อมูลฝึกงานให้เป็น Anonymous</title>
+<style>
+  :root { --amber:#f2a900; --amber-d:#c98a00; --ink:#1d1d1f; --muted:#5f6368; --line:#e5e7eb;
+          --ok:#14803c; --warn:#92580a; --danger:#b42318; --bg:#ffffff; --soft:#fafafa; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: "Segoe UI","Noto Sans Thai",Tahoma,sans-serif; color:var(--ink); background:var(--bg); }
+  header { padding:14px 28px; border-bottom:1px solid var(--line); display:flex; align-items:baseline; gap:12px; }
+  header b { font-size:22px; letter-spacing:-.3px; } header span { color:var(--muted); font-size:14px; }
+  main { max-width:1000px; margin:0 auto; padding:26px 20px 70px; }
+  h1 { text-align:center; font-size:34px; margin:6px 0 6px; letter-spacing:-.5px; }
+  h2 { font-size:24px; margin:8px 0 6px; } h3 { font-size:17px; margin:22px 0 8px; }
+  .sub { text-align:center; color:var(--muted); margin:0 0 20px; font-size:16.5px; }
+  .note { color:var(--muted); font-size:14px; line-height:1.55; } .center { text-align:center; }
+  [hidden] { display:none !important; }
+
+  /* ---------- stepper ---------- */
+  .stepper { list-style:none; display:flex; gap:6px; padding:0; margin:0 0 26px; flex-wrap:wrap; justify-content:center; }
+  .stepper li { display:flex; align-items:center; gap:8px; padding:7px 12px; border-radius:999px; font-size:14px; color:var(--muted); background:var(--soft); border:1px solid var(--line); }
+  .stepper li b { display:inline-grid; place-items:center; width:22px; height:22px; border-radius:50%; background:#d9dce0; color:#fff; font-size:12px; }
+  .stepper li.done { cursor:pointer; color:var(--ink); } .stepper li.done b { background:var(--ok); }
+  .stepper li.cur { background:#fff7e0; border-color:var(--amber); color:var(--ink); font-weight:600; } .stepper li.cur b { background:var(--amber); }
+
+  /* ---------- drop zone ---------- */
+  #drop { background:var(--amber); border-radius:14px; padding:14px; transition:background .15s; }
+  #drop.over { background:#ffbf2b; }
+  #drop .inner { border:1.5px dashed rgba(255,255,255,.85); border-radius:8px; padding:40px 20px 32px; text-align:center; color:#fff; }
+  #drop svg { width:78px; height:78px; margin-bottom:12px; }
+  .choose { display:inline-block; background:#fff; color:var(--ink); font-size:17px; font-weight:600; padding:15px 30px; border-radius:6px; cursor:pointer; user-select:none; }
+  .choose:hover { background:#fff8e6; }
+  #drop p { margin:12px 0 0; font-size:16px; } #drop .hint { font-size:13.5px; opacity:.95; margin-top:8px; }
+
+  #list { margin:16px 0 0; display:flex; flex-wrap:wrap; gap:10px; }
+  .chip { display:flex; align-items:center; gap:10px; border:1px solid var(--line); background:var(--soft); border-radius:8px; padding:8px 12px; font-size:14.5px; max-width:100%; }
+  .chip .nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:380px; } .chip small { color:var(--muted); }
+  .chip.key { background:#fff7e0; border-color:#f0d58a; }
+  .chip button { border:0; background:transparent; cursor:pointer; font-size:17px; color:var(--muted); line-height:1; padding:0 2px; } .chip button:hover { color:var(--danger); }
+
+  /* ---------- buttons / boxes ---------- */
+  .row { display:flex; justify-content:center; gap:12px; margin:24px 0 0; flex-wrap:wrap; }
+  .btn { display:inline-block; border:0; border-radius:8px; padding:14px 30px; font-size:17px; font-weight:700; cursor:pointer; background:var(--ink); color:#fff; text-decoration:none; }
+  .btn:hover { background:#000; } .btn:disabled { background:#c7c9cc; cursor:not-allowed; }
+  .btn.amber { background:var(--amber); color:#1d1d1f; } .btn.amber:hover { background:var(--amber-d); color:#fff; }
+  .btn.ghost { background:#fff; color:var(--ink); border:1.5px solid var(--ink); padding:11px 22px; font-size:16px; } .btn.ghost:hover { background:#f3f3f3; }
+  .btn.small { padding:9px 16px; font-size:14.5px; }
+  .box { border-radius:10px; padding:15px 18px; margin:16px 0 0; font-size:15.5px; line-height:1.55; }
+  .err { background:#fef3f2; border:1px solid #fecdca; color:var(--danger); }
+  .keybox { background:#fff7e0; border:1px solid #f0d58a; } .keybox b { color:var(--warn); }
+  .soft { background:var(--soft); border:1px solid var(--line); }
+  .busy { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 22px; border-radius:999px; font-size:15px; z-index:9; box-shadow:0 6px 20px rgba(0,0,0,.25); }
+  .spin { display:inline-block; width:16px; height:16px; border:3px solid #777; border-top-color:var(--amber); border-radius:50%; animation:sp .8s linear infinite; vertical-align:-3px; margin-right:8px; }
+  @keyframes sp { to { transform:rotate(360deg); } }
+  .dls { display:flex; flex-wrap:wrap; gap:12px; margin:14px 0 0; align-items:center; }
+  .badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:12.5px; font-weight:600; white-space:nowrap; }
+  .b-ok { background:#e6f4ea; color:var(--ok); } .b-warn { background:#fff4e0; color:var(--warn); } .b-bad { background:#fdecea; color:var(--danger); } .b-info { background:#e8f0fe; color:#1a4fb3; } .b-gray { background:#eceff1; color:var(--muted); }
+
+  /* ---------- tables ---------- */
+  .scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:14.5px; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  th { color:var(--muted); font-weight:600; white-space:nowrap; background:#fff; position:sticky; top:0; } td.num, th.num { text-align:right; }
+  .prev td, .prev th { font-size:13px; white-space:nowrap; padding:6px 9px; }
+
+  /* ---------- step 2: ช่องคอลัมน์ ---------- */
+  summary { cursor:pointer; font-weight:600; color:#3c4043; font-size:14.5px; padding:4px 0; }
+  .panel { margin-top:8px; padding:12px 14px; background:var(--soft); border-radius:8px; border:1px solid var(--line); }
+  .sect2 { font-weight:700; font-size:15px; margin:12px 0 2px; }
+  .crow { display:grid; grid-template-columns: 30px minmax(170px, 1fr) minmax(150px, .9fr) minmax(230px, 1.15fr); gap:6px 14px; align-items:center; padding:9px 4px; border-bottom:1px solid var(--line); background:#fff; }
+  .crow input[type=checkbox] { transform:scale(1.35); } .crow.off { background:transparent; }
+  .crow .cn { font-size:14.5px; overflow-wrap:anywhere; } .crow .cn b { font-weight:600; } .crow .cn small { display:block; color:var(--muted); font-size:12.5px; }
+  .crow .smp { font-size:13px; color:var(--muted); overflow-wrap:anywhere; } .crow .smp b { color:#3c4043; font-weight:600; }
+  .crow .how { display:flex; flex-direction:column; gap:5px; } .crow .how select, .crow .how input[type=text] { width:100%; min-width:0; }
+  .crow .how input[type=text] { font-size:13px; padding:5px 8px; border:1px solid #c8ccd0; border-radius:6px; font-family:inherit; }
+  .crow .how small { font-size:12.5px; color:var(--muted); } .crow .how small.warn { color:var(--danger); }
+  select, input[type=number], input[type=search] { padding:8px 9px; font-size:14.5px; border:1px solid #c8ccd0; border-radius:6px; background:#fff; max-width:100%; font-family:inherit; }
+  .actionbar { position:sticky; bottom:0; display:flex; gap:14px; align-items:center; justify-content:center; flex-wrap:wrap; background:rgba(255,255,255,.96); border-top:1px solid var(--line); padding:12px 8px; margin-top:22px; backdrop-filter:blur(4px); }
+
+  /* ---------- step 2: รายการตาราง (แบบเรียบ) ---------- */
+  .pickbar { display:flex; gap:18px; margin:10px 2px 0; }
+  .linkbtn { border:0; background:none; padding:4px 0; color:#1a4fb3; font:inherit; font-size:14.5px; cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+  .linkbtn:hover { color:#10357a; } .linkbtn.attn { color:var(--warn); font-weight:600; }
+  .filehead { margin:22px 2px 6px; font-size:14px; font-weight:600; color:var(--muted); overflow-wrap:anywhere; }
+  .tlist { border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-top:6px; background:#fff; }
+  .trow { border-bottom:1px solid var(--line); } .trow:last-child { border-bottom:0; }
+  .trow.on { background:#fffdf5; }
+  .trow .line { display:flex; align-items:center; gap:14px; padding:13px 18px; flex-wrap:wrap; }
+  .trow label.pick { display:flex; align-items:center; gap:14px; flex:1; min-width:200px; cursor:pointer; }
+  .trow label.pick.dis { cursor:not-allowed; opacity:.7; }
+  .trow input[type=checkbox] { width:22px; height:22px; margin:0; accent-color:var(--amber-d); flex:none; }
+  .trow .nm { font-size:17px; font-weight:600; overflow-wrap:anywhere; }
+  .trow .meta { color:var(--muted); font-size:14px; white-space:nowrap; }
+  .trow .panelwrap { padding:0 18px 16px 18px; }
+  details.others > summary { margin-top:22px; font-size:15px; color:var(--muted); font-weight:500; }
+  details.moreopt { margin:20px 2px 0; } details.moreopt > summary { font-size:14.5px; color:var(--muted); font-weight:500; }
+  details.moreopt label { display:block; margin-top:8px; font-size:14.5px; color:var(--muted); cursor:pointer; line-height:1.5; }
+  details.moreopt input { margin-right:8px; transform:scale(1.15); }
+  details.moreopt label span { opacity:.85; }
+  @media (max-width:760px) { .crow { grid-template-columns: 30px 1fr; } .crow .smp, .crow .how { grid-column: 2; } }
+
+  /* ---------- bars ---------- */
+  .bar { display:grid; grid-template-columns: 260px 1fr 90px; gap:10px; align-items:center; padding:3px 0; font-size:14.5px; }
+  .bar .nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .bar .track { background:#eceff1; border-radius:5px; height:12px; overflow:hidden; } .bar .fill { background:var(--amber); height:100%; } .bar .ct { text-align:right; color:var(--muted); }
+
+  /* ---------- step 4: position grouping ---------- */
+  .toolbar { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin:12px 0; }
+  .toolbar input[type=search] { min-width:240px; flex:1; }
+  #posTable td select { width:100%; min-width:200px; } #posTable td.ttl { min-width:230px; overflow-wrap:anywhere; } #posTable td.ttl small { color:var(--muted); display:block; }
+  #posTable tr.edited td { background:#fffbea; }
+  .sim label { display:block; padding:6px 0; cursor:pointer; } .sim input { margin-right:9px; transform:scale(1.15); }
+  footer { text-align:center; color:var(--muted); font-size:13.5px; margin-top:44px; line-height:1.7; }
+  @media (max-width:700px) { .bar { grid-template-columns: 130px 1fr 70px; } h1 { font-size:27px; } }
+</style>
+</head>
+<body>
+<header><b>Anonymize</b><span>ข้อมูลการฝึกงานนักศึกษา</span><span style="margin-left:auto;font-size:12.5px">เวอร์ชัน {{ version }} • 6 ขั้นตอน</span></header>
+
+<main>
+  <h1>แปลงข้อมูลฝึกงานให้เป็น Anonymous</h1>
+  <p class="sub">เปลี่ยนชื่อบริษัท อาจารย์ นักศึกษาเป็นรหัส ตัดข้อมูลส่วนตัวออก และจัดกลุ่มอาชีพ</p>
+  <ol class="stepper" id="stepper"></ol>
+  <div id="error" class="box err" hidden></div>
+
+  <!-- ============ 1: อัพโหลด ============ -->
+  <section id="v1">
+    <div id="drop">
+      <div class="inner">
+        <svg viewBox="0 0 84 84" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round" aria-hidden="true">
+          <rect x="14" y="10" width="40" height="52" rx="3"/><path d="M26 28h16M26 38h16M26 48h10"/>
+          <rect x="36" y="26" width="34" height="46" rx="3" fill="#f2a900"/><path d="M44 42h18M44 52h18M44 62h10"/>
+        </svg><br>
+        <label class="choose" for="file">เลือกไฟล์</label>
+        <input id="file" type="file" multiple accept=".xlsx,.csv,.json" hidden>
+        <p>หรือลากไฟล์มาวางที่นี่</p>
+        <p class="hint">รองรับ Excel (.xlsx) และ CSV • เลือกได้หลายปีพร้อมกัน<br>
+          ปีต่อไป: ใส่ <b>mapping.json</b> และไฟล์รวมปีก่อน (CSV / JSON / Excel) มาด้วย รหัสจะต่อเนื่องและข้อมูลจะรวมกันให้</p>
+      </div>
+    </div>
+    <div id="list"></div>
+    <div class="row"><button id="toStep2" class="btn" disabled>ถัดไป: เลือกตาราง →</button></div>
+  </section>
+
+  <!-- ============ 2: เลือกตาราง ============ -->
+  <section id="v2" hidden>
+    <h2>เลือกตารางที่จะแปลง</h2>
+    <p class="note" style="margin:0 0 4px">ติ๊กตารางที่ต้องการ แล้วกดแปลงได้เลย — ระบบเลือกคอลัมน์ให้แล้ว</p>
+    <p class="note" id="v2Intro"></p>
+    <div class="pickbar" id="pickbar" hidden>
+      <button class="linkbtn" id="selAll" type="button">เลือกทั้งหมดที่พร้อม</button>
+      <button class="linkbtn" id="selNone" type="button">ไม่เลือกเลย</button>
+    </div>
+    <div id="tables"></div>
+    <details class="moreopt"><summary>ตัวเลือกเพิ่มเติม</summary>
+      <label><input type="checkbox" id="keepOrig">เก็บชื่ออาชีพเดิมไว้ในไฟล์ผลลัพธ์ด้วย
+        <span>(ชื่ออาชีพบางครั้งบอกชื่อบริษัทได้ ค่าเริ่มต้นคือไม่เก็บ เหลือเฉพาะหมวดและกลุ่ม)</span></label>
+    </details>
+    <div class="actionbar">
+      <button id="back1" class="btn ghost">← กลับ</button>
+      <span id="selSummary" class="note"></span>
+      <button id="runAnon" class="btn" disabled>แปลง (anonymize)</button>
+    </div>
+  </section>
+
+  <!-- ============ 3: ผลลัพธ์ anonymize ============ -->
+  <section id="v3" hidden>
+    <h2 style="color:var(--ok)">แปลงเสร็จแล้ว ✓</h2>
+    <div class="scroll"><table><thead><tr><th>ไฟล์ › ตาราง</th><th class="num">จำนวนแถว</th><th>หมายเหตุ</th></tr></thead><tbody id="anonRows"></tbody></table></div>
+    <p class="note" id="anonCounts"></p>
+    <div class="dls" id="anonDls"></div>
+
+    <div class="box keybox">
+      <b>🔑 เก็บไฟล์ mapping.json ไว้เอง และห้ามส่งต่อ</b><br>
+      เป็นตารางบอกว่ารหัสไหนคือชื่อจริงอะไร ใครมีไฟล์นี้ก็ย้อนกลับเป็นชื่อจริงได้ ส่วนไฟล์ผลลัพธ์ส่งต่อได้ปลอดภัยกว่า<br>
+      ปีหน้านำไฟล์นี้มาใส่พร้อมไฟล์ใหม่ เพื่อให้รหัสเดิมยังเป็นรหัสเดิม
+      <div class="dls" id="anonKey"></div>
+    </div>
+
+    <div id="simBox" class="box soft sim" hidden>
+      <b>ชื่อบริษัทเหล่านี้คล้ายกัน เป็นที่เดียวกันหรือไม่?</b><br>
+      <span class="note">ติ๊กเฉพาะคู่ที่เป็นที่เดียวกันจริง (ค่าเริ่มต้นคือไม่รวม) แล้วกดแปลงใหม่ ระบบจะจำไว้ใน mapping.json ให้</span>
+      <div id="simList" style="margin-top:8px"></div>
+      <div class="dls"><button id="mergeBtn" class="btn ghost small">รวมที่เลือกแล้วแปลงใหม่</button></div>
+    </div>
+
+    <h3>ตัวอย่างข้อมูลที่แปลงแล้ว (8 แถวแรก)</h3>
+    <div class="scroll prev"><table><thead id="anonPrevH"></thead><tbody id="anonPrevB"></tbody></table></div>
+    <div class="row">
+      <button id="back2" class="btn ghost">← กลับไปเลือกตาราง</button>
+      <button id="toStep4" class="btn">ถัดไป: จัดกลุ่มอาชีพ →</button>
+    </div>
+  </section>
+
+  <!-- ============ 4: จัดกลุ่มอาชีพ ============ -->
+  <section id="v4" hidden>
+    <h2>จัดกลุ่มอาชีพ</h2>
+    <p class="note">แต่ละอาชีพในข้อมูล <b>→ อยู่ในหมวดอะไร → หมวดนั้นอยู่ในกลุ่มไหน</b> ระบบแนะนำให้ก่อน แก้ได้ตามที่เจ้าหน้าที่/ผู้ใช้เห็นว่าเหมาะสม
+      (เปลี่ยน “กลุ่ม” = เปลี่ยนกลุ่มของหมวดนั้นทั้งหมด เพิ่มหมวด/กลุ่มใหม่ได้จากตัวเลือกท้ายรายการ) แถวสีเหลืองคือที่คุณแก้ ระบบจะจำไว้ใน mapping.json
+      ชื่ออาชีพที่เห็นในหน้านี้แสดงเฉพาะบนจอของคุณ</p>
+    <div class="toolbar">
+      <input type="search" id="posSearch" placeholder="ค้นหาอาชีพ...">
+      <select id="posFilter">
+        <option value="all">แสดงทั้งหมด</option><option value="check">เฉพาะที่ควรตรวจ (ไม่แน่ใจ / เดาจากบริบท)</option><option value="edited">เฉพาะที่คุณแก้แล้ว</option>
+      </select>
+      <span class="note" id="posInfo"></span>
+    </div>
+    <div class="scroll" style="max-height:620px; overflow-y:auto; border:1px solid var(--line); border-radius:8px">
+      <table id="posTable"><thead><tr><th>อาชีพ</th><th>→ หมวด (category)</th><th>→ กลุ่ม (group)</th><th>สถานะ</th></tr></thead><tbody id="posBody"></tbody></table>
+    </div>
+    <p id="posEmpty" class="note center" hidden>ไม่พบคอลัมน์ตำแหน่งงานในตารางที่เลือก จึงไม่มีอะไรให้จัดกลุ่ม ข้ามไปขั้นถัดไปได้เลย</p>
+    <div class="row">
+      <button id="back3" class="btn ghost">← กลับ</button>
+      <button id="savePos" class="btn">บันทึกการจัดกลุ่มและดูผล →</button>
+    </div>
+  </section>
+
+  <!-- ============ 5: ผลการจัดกลุ่ม ============ -->
+  <section id="v5" hidden>
+    <h2 style="color:var(--ok)">จัดกลุ่มอาชีพเสร็จแล้ว ✓</h2>
+    <p class="note">ตารางด้านล่างคือผลที่ใช้: อาชีพ → หมวด → กลุ่ม ดาวน์โหลดไว้ใช้ต่อได้ทั้ง CSV และ JSON</p>
+    <div class="dls" id="posDls"></div>
+    <h3>จำนวนคนตามกลุ่ม</h3>
+    <div id="posBars"></div>
+    <h3>ตารางอาชีพ → หมวด → กลุ่ม</h3>
+    <div class="scroll" style="max-height:520px; overflow-y:auto; border:1px solid var(--line); border-radius:8px">
+      <table><thead><tr><th>อาชีพ</th><th>หมวด</th><th>กลุ่ม</th><th class="num">จำนวน</th></tr></thead><tbody id="posResBody"></tbody></table>
+    </div>
+    <div class="box keybox"><b>🔑 mapping.json (อัปเดตแล้ว)</b> มีการจัดกลุ่มที่คุณแก้ไว้ด้วย เก็บไว้เอง ห้ามส่งต่อ
+      <div class="dls" id="posKey"></div></div>
+    <div class="row">
+      <button id="back4" class="btn ghost">← แก้การจัดกลุ่ม</button>
+      <button id="toStep6" class="btn">ถัดไป: Anonymize รวม →</button>
+    </div>
+  </section>
+
+  <!-- ============ 6: ผลรวม ============ -->
+  <section id="v6" hidden>
+    <h2 style="color:var(--ok)">Anonymize รวมเสร็จแล้ว ✓</h2>
+    <p class="note" id="finInfo"></p>
+    <div class="dls" id="finDls"></div>
+    <h3>จำนวนคนตามกลุ่มอาชีพ</h3>
+    <div id="finBars"></div>
+    <h3>ตัวอย่างข้อมูล (8 แถวแรก)</h3>
+    <div class="scroll prev"><table><thead id="finPrevH"></thead><tbody id="finPrevB"></tbody></table></div>
+    <div class="box keybox"><b>🔑 mapping.json (ฉบับสุดท้าย)</b> เก็บไว้เอง ห้ามส่งต่อ และปีหน้านำมาใส่พร้อมไฟล์รวมนี้เพื่อต่อข้อมูล
+      <div class="dls" id="finKey"></div></div>
+    <div class="row">
+      <button id="back5" class="btn ghost">← กลับ</button>
+      <button id="restart" class="btn">เริ่มใหม่</button>
+    </div>
+  </section>
+
+  <div id="busy" class="busy" hidden><span class="spin"></span><span id="busyText">กำลังประมวลผล...</span></div>
+  <footer>
+    ไฟล์ของคุณถูกประมวลผลในหน่วยความจำและลบทันที ไม่มีการเก็บไว้บนเซิร์ฟเวอร์ สถานะของแต่ละขั้นตอนอยู่ในหน้านี้เท่านั้น (รีเฟรชหน้า = เริ่มใหม่)<br>
+    ผลลัพธ์ตัดชื่อ-นามสกุล เบอร์โทร อีเมล และที่อยู่ออก ชื่อบริษัทถูกแทนที่ด้วยรหัส เช่น “บริษัท 12”
+  </footer>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  function el(tag, props = {}, ...kids) {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+      if (v == null || v === false) continue;
+      if (k === "class") n.className = v;
+      else if (k === "text") n.textContent = v;
+      else if (k === "value" || k === "checked" || k === "disabled" || k === "selected") n[k] = v;
+      else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v === true ? "" : v);
+    }
+    kids.flat().forEach(c => { if (c != null && c !== false) n.append(c.nodeType ? c : document.createTextNode(String(c))); });
+    return n;
+  }
+  const clear = n => n.replaceChildren();
+  const pad = n => String(n).padStart(2, "0");
+
+  const STEPS = ["อัพโหลดไฟล์", "เลือกตาราง", "ผลลัพธ์ anonymize", "จัดกลุ่มอาชีพ", "ผลการจัดกลุ่ม", "ผลรวม"];
+  const S = {
+    files: [], kinds: {}, mapping: null, mapping0: null, tables: [], sel: {}, fieldLabels: {}, keepOrig: false, aliasAcc: {},
+    anon: null, taxo: null, rows: [], posRes: null, final: null, step: 1, maxStep: 1, urls: [],
+  };
+
+  /* ---------------- ตัวช่วยทั่วไป ---------------- */
+  const showError = msg => { const e = $("error"); e.textContent = msg; e.hidden = false; e.scrollIntoView({ block: "nearest" }); };
+  const hideError = () => { $("error").hidden = true; };
+  const busy = (on, text) => { $("busy").hidden = !on; if (text) $("busyText").textContent = text; };
+
+  async function post(path, body, isJson) {
+    const res = await fetch(path, isJson ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : { method: "POST", body });
+    let data = {}; try { data = await res.json(); } catch (_) {}
+    if (!res.ok) throw new Error(data.error || "ดำเนินการไม่สำเร็จ ลองใหม่อีกครั้ง");
+    return data;
+  }
+  async function guarded(text, fn) {
+    hideError(); busy(true, text);
+    try { return await fn(); }
+    catch (e) { showError(e instanceof TypeError ? "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้" : e.message); return null; }
+    finally { busy(false); }
+  }
+
+  const isMap = f => f.name.toLowerCase().endsWith(".json");
+  const isSupported = f => /\.(xlsx|csv|json)$/i.test(f.name);
+  const kindOf = f => S.kinds[f.name] || (isMap(f) ? "json" : "data");
+  const dataFiles = () => S.files.filter(f => ["data"].includes(S.kinds[f.name]));
+  const masterFiles = () => S.files.filter(f => S.kinds[f.name] === "master");
+
+  function blobUrl(b64, mime) {
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const u = URL.createObjectURL(new Blob([bytes], { type: mime })); S.urls.push(u); return u;
+  }
+  function fileLink(o, cls) { return el("a", { class: "btn " + (cls || "ghost small"), href: blobUrl(o.b64, o.mime), download: o.filename, text: "⬇ " + o.filename }); }
+  function mappingLink() {
+    const u = URL.createObjectURL(new Blob([JSON.stringify(S.mapping, null, 2)], { type: "application/json" })); S.urls.push(u);
+    return el("a", { class: "btn amber small", href: u, download: "mapping.json", text: "⬇ ดาวน์โหลด mapping.json" });
+  }
+  function bars(box, items, labelKey) {
+    clear(box);
+    const total = items.reduce((a, x) => a + x.count, 0) || 1, max = Math.max(1, ...items.map(x => x.count));
+    items.forEach(x => box.append(el("div", { class: "bar" },
+      el("span", { class: "nm", text: x[labelKey], title: x[labelKey] }),
+      el("div", { class: "track" }, el("div", { class: "fill", style: `width:${x.count / max * 100}%` })),
+      el("span", { class: "ct", text: `${x.count} (${(x.count / total * 100).toFixed(1)}%)` }))));
+  }
+  function previewTable(head, body, columns, rows) {
+    clear(head); clear(body);
+    head.append(el("tr", {}, columns.map(c => el("th", { text: c }))));
+    rows.forEach(r => body.append(el("tr", {}, columns.map(c => el("td", { text: r[c] == null ? "" : String(r[c]) })))));
+  }
+
+  /* ---------------- การนำทางระหว่างหน้า ---------------- */
+  function renderStepper() {
+    const ol = $("stepper"); clear(ol);
+    STEPS.forEach((t, i) => {
+      const n = i + 1, cls = n === S.step ? "cur" : (n <= S.maxStep ? "done" : "");
+      ol.append(el("li", { class: cls, onclick: n <= S.maxStep && n !== S.step ? () => go(n) : null }, el("b", { text: n }), t));
+    });
+  }
+  function go(n, push = true) {
+    S.step = n; S.maxStep = Math.max(S.maxStep, n);
+    for (let i = 1; i <= 6; i++) $("v" + i).hidden = i !== n;
+    hideError(); renderStepper();
+    if (push) history.pushState({ step: n }, "", "#" + n);
+    window.scrollTo({ top: 0 });
+  }
+  window.addEventListener("popstate", e => { const n = (e.state && e.state.step) || 1; if (n <= S.maxStep) go(n, false); });
+  function resetFrom(step) {                       // ล้างผลของขั้นที่อยู่หลังจากนี้ (เมื่อย้อนกลับมาแก้)
+    if (step <= 2) { S.anon = null; S.rows = []; S.taxo = null; }
+    if (step <= 4) { S.posRes = null; S.final = null; }
+    S.maxStep = Math.min(S.maxStep, step);
+  }
+
+  /* ---------------- ขั้น 1: อัพโหลด ---------------- */
+  function addFiles(files) {
+    hideError();
+    for (const f of files) {
+      if (!isSupported(f)) { showError(`ไม่รองรับไฟล์ “${f.name}” (รองรับ .xlsx, .csv และ mapping.json)`); continue; }
+      if (!S.files.some(x => x.name === f.name && x.size === f.size)) S.files.push(f);
+    }
+    S.kinds = {}; renderFiles();
+  }
+  function renderFiles() {
+    const list = $("list"); clear(list);
+    S.files.forEach((f, i) => {
+      const k = S.kinds[f.name], key = isMap(f) || k === "mapping" || k === "master";
+      const note = k === "mapping" ? "mapping.json" : k === "master" ? "ไฟล์รวมปีก่อน" : isMap(f) ? "mapping.json / ไฟล์รวม" : `${Math.max(1, Math.round(f.size / 1024))} KB`;
+      list.append(el("div", { class: "chip" + (key ? " key" : "") },
+        el("span", { class: "nm", text: (key ? "🔑 " : "📄 ") + f.name }), el("small", { text: note }),
+        el("button", { title: "เอาออก", text: "✕", onclick: () => { S.files.splice(i, 1); S.kinds = {}; renderFiles(); } })));
+    });
+    $("toStep2").disabled = !S.files.some(f => !isMap(f));
+  }
+  async function analyze(overrides) {
+    const fd = new FormData();
+    S.files.forEach(f => fd.append("files", f, f.name));
+    fd.append("header_overrides", JSON.stringify(overrides || {}));
+    return post("/analyze", fd);
+  }
+  async function toStep2() {
+    const r = await guarded("กำลังอ่านโครงสร้างไฟล์...", () => analyze());
+    if (!r) return;
+    r.files.forEach(k => { S.kinds[k.name] = k.kind; });
+    S.mapping = r.mapping || null; S.mapping0 = r.mapping || null; S.fieldLabels = r.field_labels; S.tables = r.tables; S.aliasAcc = {};
+    S.sel = {}; r.tables.forEach(initSel);
+    resetFrom(2); renderFiles(); renderTables(); go(2);
+  }
+
+  /* ---------------- ขั้น 2: เลือกตาราง + เลือกคอลัมน์ ---------------- */
+  // [รหัสความหมาย, ชื่อที่แสดง, ระบบจะทำอะไรให้]
+  const ROLES = [
+    ["student_id", "รหัสนักศึกษา", "แปลงเป็นรหัส"], ["company", "บริษัท / หน่วยงาน", "แปลงเป็นรหัส"], ["advisor", "อาจารย์นิเทศ", "แปลงเป็นรหัส"],
+    ["province", "จังหวัด", "เก็บไว้"], ["start", "วันเริ่มฝึกงาน", "คำนวณเดือน-ปีให้"], ["end", "วันสิ้นสุดฝึกงาน", "คำนวณเดือน-ปีให้"],
+    ["period", "ช่วงเวลาฝึกงาน (ข้อความ)", "คำนวณเดือน-ปีให้"], ["position", "ตำแหน่งงาน", "จัดหมวดอาชีพให้"], ["course", "รายวิชา", "เก็บไว้"], ["mou", "MOU", "เก็บไว้"],
+  ];
+  const ROLE_NAME = Object.fromEntries(ROLES.map(r => [r[0], r[1]])), ROLE_HOW = Object.fromEntries(ROLES.map(r => [r[0], r[2]]));
+  const MULTI = new Set(["company", "position"]);                 // 2 คอลัมน์ได้ (บริษัท/ตำแหน่งที่สอง)
+  const baseName = c => c.label.split("  (")[0].trim();
+  const has = v => Array.isArray(v) && v.length > 0;
+
+  function initSel(t) {
+    const actions = {};
+    t.columns.forEach(c => { actions[c.idx] = { kind: "drop" }; });
+    const guessed = new Set();
+    for (const [role, idxs] of Object.entries(t.suggested)) idxs.forEach(i => {
+      if (actions[i]) { actions[i] = { kind: "role", role }; if (t.guessed.includes(role)) guessed.add(i); }
+    });
+    S.sel[t.id] = { enabled: t.ok, header_rows: t.header_rows, actions, open: false, offOpen: false, touched: false, guessed };
+  }
+  const roleCols = (t, role) => Object.entries(S.sel[t.id].actions).filter(([, a]) => a.kind === "role" && a.role === role).map(([i]) => Number(i));
+  const usable = t => roleCols(t, "student_id").length > 0;
+  function warningsFor(t) {
+    const w = [], s = roleCols(t, "start").length, e = roleCols(t, "end").length, p = roleCols(t, "period").length;
+    if (!!s !== !!e) w.push("เลือกวันเริ่มและวันสิ้นสุดให้ครบคู่ (หรือเลือก “ช่วงเวลา” แบบข้อความ) ไม่งั้นจะไม่คำนวณจำนวนเดือน");
+    if (s && e && p) w.push("เลือกทั้งวันเริ่ม/วันสิ้นสุด และช่วงเวลา ระบบจะใช้แบบวันเริ่ม/วันสิ้นสุด");
+    return w;
+  }
+  function selectionPayload() {
+    return S.tables.map(t => {
+      const st = S.sel[t.id], columns = {}, extras = [];
+      Object.entries(st.actions).sort((a, b) => a[0] - b[0]).forEach(([i, a]) => {
+        const idx = Number(i);
+        if (a.kind === "role") (columns[a.role] = columns[a.role] || []).push(idx);
+        else if (a.kind === "keep" || a.kind === "code") extras.push({ idx, mode: a.kind, name: a.name || "", prefix: a.prefix || a.name || "" });
+      });
+      return { file: t.file, sheet: t.sheet, enabled: st.enabled, header_rows: st.header_rows, columns, extras };
+    });
+  }
+  function setAction(t, c, value) {
+    const st = S.sel[t.id];
+    if (value === "drop") st.actions[c.idx] = { kind: "drop" };
+    else if (value.startsWith("role:")) {
+      const role = value.slice(5);
+      if (!MULTI.has(role)) Object.entries(st.actions).forEach(([i, a]) => { if (Number(i) !== c.idx && a.kind === "role" && a.role === role) st.actions[i] = { kind: "drop" }; });
+      st.actions[c.idx] = { kind: "role", role };
+    } else st.actions[c.idx] = { kind: value, name: baseName(c), prefix: baseName(c) };
+    st.guessed.delete(c.idx);
+    if (!st.touched && !t.ok && usable(t)) st.enabled = true;
+  }
+  function restoreAction(t, c) {                                    // ติ๊กกลับมา: ถ้าระบบเคยรู้จักคอลัมน์นี้ ให้ใช้บทบาทเดิม (เช่น รหัสนักศึกษา)
+    const hit = Object.entries(t.suggested || {}).find(([, idxs]) => idxs.includes(c.idx));
+    return hit ? { kind: "role", role: hit[0] } : defaultAction(c);
+  }
+  const defaultAction = c => ({ kind: c.sensitive ? "code" : "keep", name: baseName(c), prefix: baseName(c) });
+
+  function colRow(t, c) {
+    const st = S.sel[t.id], a = st.actions[c.idx], on = a.kind !== "drop", value = a.kind === "role" ? "role:" + a.role : a.kind;
+    const cb = el("input", { type: "checkbox", checked: on, title: on ? "เอาคอลัมน์นี้" : "ไม่เอา (ติ๊กเพื่อเพิ่ม)", onchange: e => {
+      st.actions[c.idx] = e.target.checked ? restoreAction(t, c) : { kind: "drop" }; st.guessed.delete(c.idx); if (e.target.checked) st.offOpen = true; renderCard(t); } });
+    const sel = el("select", { disabled: !on },
+      !on ? el("option", { value: "drop", text: "ไม่เอา" }) : null,
+      el("optgroup", { label: "จัดการแบบทั่วไป" }, el("option", { value: "keep", text: "เก็บไว้ตามเดิม" }), el("option", { value: "code", text: "แปลงเป็นรหัส (ซ่อนค่าจริง)" })),
+      el("optgroup", { label: "ระบบรู้จัก (จัดการพิเศษให้)" }, ROLES.map(r => el("option", { value: "role:" + r[0], text: `${r[1]} — ${r[2]}` }))));
+    sel.value = on ? value : "drop";
+    sel.addEventListener("change", () => { setAction(t, c, sel.value); renderCard(t); });
+    const how = el("div", { class: "how" }, sel);
+    if (a.kind === "keep" || a.kind === "code") {
+      const nameIn = el("input", { type: "text", maxlength: 60, value: a.kind === "keep" ? (a.name || "") : (a.prefix || ""),
+        placeholder: a.kind === "keep" ? "ชื่อคอลัมน์ในไฟล์ผลลัพธ์" : "ขึ้นต้นรหัสว่า (เช่น ผู้ประสานงาน)",
+        oninput: e => { if (a.kind === "keep") a.name = e.target.value; else { a.prefix = e.target.value; a.name = e.target.value; } } });
+      how.append(nameIn);
+      how.append(el("small", { class: a.kind === "keep" && c.sensitive ? "warn" : "",
+        text: a.kind === "code" ? "ค่าจริงจะถูกซ่อน เปลี่ยนเป็น “ขึ้นต้นรหัส 1, 2, 3…”" : c.sensitive ? "⚠ คอลัมน์นี้อาจมีข้อมูลส่วนตัว ถ้าเก็บตามเดิม ค่าจริงจะอยู่ในไฟล์ผลลัพธ์" : "ค่าเดิมจะอยู่ในไฟล์ผลลัพธ์" }));
+    } else if (a.kind === "role") how.append(el("small", { text: ROLE_HOW[a.role] }));
+    const mask = v => v.slice(0, 2) + "•••";                              // คอลัมน์ที่อาจมีข้อมูลส่วนตัว: โชว์แค่ 2 ตัวแรก
+    const smp = c.samples.map(v => c.sensitive ? mask(v) : v).join("  ·  ");
+    return el("div", { class: "crow" + (on ? "" : " off") }, cb,
+      el("div", { class: "cn" }, el("b", { text: `${c.letter}: ${baseName(c)}` }),
+        el("small", {}, c.sensitive && !on ? "⚠ อาจมีข้อมูลส่วนตัว" : null, st.guessed.has(c.idx) ? el("span", { class: "badge b-warn", text: "ระบบเดา" }) : null)),
+      el("div", { class: "smp" }, smp ? ["ตัวอย่าง: ", el("b", { text: smp })] : ""), how);
+  }
+
+  function mappingPanel(t) {
+    const st = S.sel[t.id];
+    const on = t.columns.filter(c => st.actions[c.idx].kind !== "drop");
+    const off = t.columns.filter(c => st.actions[c.idx].kind === "drop").sort((x, y) => Number(x.sensitive) - Number(y.sensitive));
+    return el("div", { class: "panel" },
+      el("p", { class: "note", style: "margin:0", text: "ติ๊ก = เอาคอลัมน์นี้ / ไม่ติ๊ก = ไม่เอา (ตัวอย่างค่าแสดงบนจอคุณเท่านั้น)" }),
+      !usable(t) ? el("div", { class: "box err", style: "margin:10px 0 0", text: "ต้องมีอย่างน้อย 1 คอลัมน์เป็น “รหัสนักศึกษา” (ใช้บอกว่าแต่ละแถวคือใคร) เลือกจากช่องด้านล่าง" }) : null,
+      warningsFor(t).map(w => el("p", { class: "note", style: "color:var(--warn); margin:8px 0 0", text: "⚠ " + w })),
+      el("div", { class: "sect2", text: `คอลัมน์ที่จะเอา (${on.length})` }), el("div", {}, on.map(c => colRow(t, c))),
+      el("details", { open: st.offOpen || !usable(t), ontoggle: e => { st.offOpen = e.target.open; } },
+        el("summary", { text: `คอลัมน์ที่ไม่เอา (${off.length}) — กดเพื่อดู และติ๊กเพิ่มถ้าต้องการ` }), el("div", {}, off.map(c => colRow(t, c)))),
+      el("div", { class: "dls" },
+        el("button", { class: "btn ghost small", text: "↺ กลับไปใช้ที่ระบบแนะนำ", onclick: () => { const en = st.enabled, o = st.open; initSel(t); S.sel[t.id].enabled = en; S.sel[t.id].open = o; S.sel[t.id].offOpen = false; renderCard(t); } }),
+        !st.enabled && usable(t) ? el("button", { class: "btn amber small", text: "✓ ถูกต้องแล้ว ใช้ตารางนี้", onclick: () => { st.enabled = true; st.touched = true; renderCard(t); } }) : null));
+  }
+  function colCounts(t) {
+    const st = S.sel[t.id], n = t.columns.filter(c => st.actions[c.idx].kind !== "drop").length;
+    return `เอา ${n} จาก ${t.columns.length} คอลัมน์`;
+  }
+  function renderCard(t) {
+    const old = document.querySelector(`[data-tid="${CSS.escape(t.id)}"]`);
+    const card = buildCard(t); if (old) old.replaceWith(card);
+    updateRunButton();
+  }
+  function buildCard(t) {
+    const st = S.sel[t.id], ok = usable(t), needCheck = !t.ok;
+    const cb = el("input", { type: "checkbox", checked: st.enabled, onchange: e => { st.enabled = e.target.checked; st.touched = true; renderCard(t); } });
+    const status = t.ok ? el("span", { class: "badge b-ok", text: "✓ พร้อม" })
+      : ok ? el("span", { class: "badge b-warn", text: st.guessed.size ? "ระบบเดาคอลัมน์ — ควรตรวจ" : "เลือกคอลัมน์แล้ว" })
+      : el("span", { class: "badge b-gray", text: "อ่านหัวตารางไม่ออก" });
+    const toggle = el("button", { type: "button", class: "linkbtn" + (needCheck && !st.open ? " attn" : ""),
+      text: st.open ? "ซ่อนคอลัมน์ ▴" : (needCheck ? "ตรวจ / เลือกคอลัมน์ ▾" : "ดู/ปรับคอลัมน์ ▾"),
+      title: colCounts(t), onclick: () => { st.open = !st.open; renderCard(t); } });
+    const row = el("div", { class: "trow" + (st.enabled ? " on" : ""), "data-tid": t.id },
+      el("div", { class: "line" },
+        el("label", { class: "pick" }, cb, el("span", { class: "nm", text: t.sheet })),
+        el("span", { class: "meta", text: `${t.rows} แถว` }), status, toggle),
+      st.open ? el("div", { class: "panelwrap" }, mappingPanel(t)) : null);
+    return row;
+  }
+  function renderTables() {
+    const box = $("tables"); clear(box);
+    const main = S.tables.filter(t => t.ok || t.complete), other = S.tables.filter(t => !t.ok && !t.complete);
+    const files = [...new Set(main.map(t => t.file))];
+    files.forEach(f => {
+      if (files.length > 1) box.append(el("div", { class: "filehead", text: "📄 " + f }));
+      const list = el("div", { class: "tlist" }); main.filter(t => t.file === f).forEach(t => list.append(buildCard(t))); box.append(list);
+    });
+    if (other.length) {
+      const d = el("details", { class: "others", open: main.length === 0 },
+        el("summary", { text: `ตารางอื่นที่ระบบอ่านไม่ออก (${other.length}) — ปกติไม่ต้องใช้ เช่น ชีตสรุปหรือชีตงบประมาณ` }));
+      const list = el("div", { class: "tlist" }); other.forEach(t => list.append(buildCard(t))); d.append(list); box.append(d);
+    }
+    $("pickbar").hidden = main.filter(t => usable(t)).length < 2;
+    $("v2Intro").textContent = main.length ? "" : "ระบบอ่านหัวตารางของไฟล์นี้ไม่ออก เปิดตารางด้านล่าง กด “ตรวจ / เลือกคอลัมน์” แล้วเลือกว่าคอลัมน์ไหนคือรหัสนักศึกษา";
+    $("keepOrig").checked = S.keepOrig; updateRunButton();
+  }
+  function setAll(on) {
+    S.tables.filter(t => (t.ok || t.complete) && usable(t)).forEach(t => { const st = S.sel[t.id]; st.enabled = on && t.ok; st.touched = true; });
+    renderTables();
+  }
+  function updateRunButton() {
+    const on = S.tables.filter(t => S.sel[t.id].enabled), bad = on.filter(t => !usable(t));
+    const rows = on.reduce((a, t) => a + t.rows, 0), b = $("runAnon");
+    b.disabled = on.length === 0 || bad.length > 0;
+    b.textContent = "แปลง (anonymize) →";
+    $("selSummary").textContent = on.length === 0 ? "ยังไม่ได้เลือกตาราง" : bad.length ? `⚠ ${bad.length} ตารางยังไม่มีคอลัมน์รหัสนักศึกษา` : `เลือกแล้ว ${on.length} ตาราง • ${rows} แถว`;
+  }
+  /* ---------------- ขั้น 2 -> 3: anonymize ---------------- */
+  function anonForm(useLatest) {
+    const fd = new FormData();
+    dataFiles().forEach(f => fd.append("files", f, f.name));
+    const m = useLatest ? S.mapping : S.mapping0;          // แปลงใหม่ทุกครั้งเริ่มจาก mapping ที่ผู้ใช้อัพโหลดมา (รหัสไม่เหลือส่วนเกินจากรอบก่อน)
+    if (m) fd.append("mapping", JSON.stringify(m));
+    fd.append("selection", JSON.stringify(selectionPayload()));
+    fd.append("alias", JSON.stringify(S.aliasAcc));
+    fd.append("keep_original", S.keepOrig ? "1" : "0");
+    return fd;
+  }
+  async function runAnon(stay) {
+    S.keepOrig = $("keepOrig").checked;
+    const r = await guarded("กำลังแปลง...", () => post("/anonymize", anonForm()));
+    if (!r) return;
+    S.anon = r; S.mapping = r.mapping; S.taxo = { categories: r.categories.map(c => ({ ...c })) };
+    S.rows = r.titles.map(t => ({ ...t })); resetFrom(3); renderAnon();
+    if (!stay) go(3);
+  }
+  function renderAnon() {
+    const r = S.anon, body = $("anonRows"); clear(body);
+    r.tables.forEach(t => body.append(el("tr", {},
+      el("td", { text: `${t.file} › ${t.table}` }), el("td", { class: "num", text: t.rows }),
+      el("td", { text: [
+        t.bad_dates ? `วันที่ฝึกงานอ่านไม่ได้ ${t.bad_dates} แถว (ตรวจกับไฟล์ต้นฉบับ)` : "",
+        t.no_id ? `ข้าม ${t.no_id} แถวที่ไม่มีรหัสนักศึกษา (ตรวจกับไฟล์ต้นฉบับ)` : "",
+        t.not_company ? `ข้าม ${t.not_company} แถวที่ยังไม่มีที่ฝึกงาน` : "" ].filter(Boolean).join(" • ") || "—" }))));
+    $("anonCounts").textContent = `รวม ${r.rows} แถว • รหัสที่ใช้: บริษัท ${r.counts.company} • นักศึกษา ${r.counts.student_id} • อาจารย์ ${r.counts.advisor}` +
+      (S.mapping && Object.keys(S.mapping._alias || {}).length ? ` • รวมชื่อบริษัทแล้ว ${Object.keys(S.mapping._alias).length} คู่` : "");
+    const dls = $("anonDls"); clear(dls); r.outputs.forEach((o, i) => dls.append(fileLink(o, i === 0 ? "amber" : "ghost")));
+    const key = $("anonKey"); clear(key); key.append(mappingLink());
+    const sl = $("simList"); clear(sl);
+    const seen = new Set();
+    r.similar.filter(s => { const k = s.name + "|" + s.near; if (seen.has(k)) return false; seen.add(k); return true; }).forEach(s => {
+      const cb = el("input", { type: "checkbox", "data-name": s.name, "data-near": s.near });
+      sl.append(el("label", {}, cb, `“${s.name}”  ≈  “${s.near}”`));
+    });
+    $("simBox").hidden = sl.children.length === 0;
+    previewTable($("anonPrevH"), $("anonPrevB"), r.columns, r.preview);
+  }
+
+  /* ---------------- ขั้น 4: จัดกลุ่มอาชีพ ---------------- */
+  const catOf = code => S.taxo.categories.find(c => c.code === code);
+  const groupsList = () => [...new Set(S.taxo.categories.map(c => c.group))];
+  function statusOf(r) {
+    if (r.code !== r.suggested || r.confidence === "Manual") return ["edited", "คุณแก้แล้ว", "b-info"];
+    return { High: ["ok", "ระบบแนะนำ", "b-ok"], Medium: ["check", "เดาจากบริบท", "b-warn"], Low: ["check", "ไม่แน่ใจ", "b-bad"] }[r.confidence] || ["ok", "", "b-gray"];
+  }
+  function fillCat(sel, code) {
+    clear(sel);
+    S.taxo.categories.forEach(c => sel.append(el("option", { value: c.code, text: `${pad(c.code)} ${c.name}` })));
+    sel.append(el("option", { value: "__new", text: "＋ เพิ่มหมวดใหม่…" })); sel.value = String(code);
+  }
+  function fillGroup(sel, group) {
+    clear(sel);
+    groupsList().forEach(g => sel.append(el("option", { value: g, text: g })));
+    sel.append(el("option", { value: "__new", text: "＋ เพิ่มกลุ่มใหม่…" })); sel.value = group;
+  }
+  function refreshSelects() {
+    document.querySelectorAll("#posBody tr").forEach(tr => {
+      const r = tr._row; if (!r) return;
+      fillCat(tr._cat, r.code); fillGroup(tr._grp, catOf(r.code).group);
+      const [state, text, cls] = statusOf(r); tr.className = state === "edited" ? "edited" : ""; tr._badge.className = "badge " + cls; tr._badge.textContent = text;
+    });
+  }
+  function askName(msg) { const v = (window.prompt(msg) || "").trim(); return v.slice(0, 80); }
+  function onCat(r, tr) {
+    const v = tr._cat.value;
+    if (v === "__new") {
+      const name = askName("ชื่อหมวดใหม่:");
+      if (!name) { tr._cat.value = String(r.code); return; }
+      if (S.taxo.categories.some(c => c.name.toLowerCase() === name.toLowerCase())) { showError(`มีหมวดชื่อ “${name}” อยู่แล้ว`); tr._cat.value = String(r.code); return; }
+      const code = Math.max(...S.taxo.categories.map(c => c.code)) + 1;
+      S.taxo.categories.push({ code, name, group: catOf(r.code).group }); r.code = code;
+    } else r.code = Number(v);
+    refreshSelects(); applyFilter();
+  }
+  function onGroup(r, tr) {
+    const v = tr._grp.value;
+    if (v === "__new") {
+      const name = askName("ชื่อกลุ่มใหม่ (จะใช้กับหมวด “" + catOf(r.code).name + "” ทั้งหมด):");
+      if (!name) { tr._grp.value = catOf(r.code).group; return; }
+      catOf(r.code).group = name;
+    } else catOf(r.code).group = v;
+    refreshSelects();
+  }
+  function renderPositions() {
+    const body = $("posBody"); clear(body);
+    $("posEmpty").hidden = S.rows.length > 0; $("posTable").parentElement.hidden = S.rows.length === 0;
+    S.rows.forEach(r => {
+      const cat = el("select", {}), grp = el("select", {}), badge = el("span", { class: "badge" });
+      const tr = el("tr", {}, el("td", { class: "ttl" }, r.title, el("small", { text: `${r.count} คน` })), el("td", {}, cat), el("td", {}, grp), el("td", {}, badge));
+      tr._row = r; tr._cat = cat; tr._grp = grp; tr._badge = badge;
+      cat.addEventListener("change", () => onCat(r, tr)); grp.addEventListener("change", () => onGroup(r, tr));
+      body.append(tr);
+    });
+    refreshSelects(); applyFilter();
+  }
+  function applyFilter() {
+    const q = $("posSearch").value.trim().toLowerCase(), f = $("posFilter").value; let shown = 0;
+    document.querySelectorAll("#posBody tr").forEach(tr => {
+      const r = tr._row, state = statusOf(r)[0];
+      const ok = (!q || r.title.toLowerCase().includes(q)) && (f === "all" || (f === "check" && state === "check") || (f === "edited" && state === "edited"));
+      tr.hidden = !ok; if (ok) shown++;
+    });
+    const edited = S.rows.filter(r => statusOf(r)[0] === "edited").length, check = S.rows.filter(r => statusOf(r)[0] === "check").length;
+    $("posInfo").textContent = `แสดง ${shown} จาก ${S.rows.length} อาชีพ • ควรตรวจ ${check} • คุณแก้แล้ว ${edited}`;
+  }
+  async function savePos() {
+    const body = { mapping: S.mapping, categories: S.taxo.categories, rows: S.rows.map(r => ({ title: r.title, count: r.count, code: r.code })) };
+    const r = await guarded("กำลังบันทึกการจัดกลุ่ม...", () => post("/positions", body, true));
+    if (!r) return;
+    S.posRes = r; S.mapping = r.mapping; S.final = null; S.maxStep = Math.min(S.maxStep, 5); renderPosResult(); go(5);
+  }
+  function renderPosResult() {
+    const r = S.posRes, d = $("posDls"); clear(d); r.outputs.forEach((o, i) => d.append(fileLink(o, i === 0 ? "amber" : "ghost")));
+    bars($("posBars"), r.groups.map(g => ({ count: g.count, group: g.group })), "group");
+    const b = $("posResBody"); clear(b);
+    r.rows.forEach(x => b.append(el("tr", {}, el("td", { text: x.position }), el("td", { text: x.category }), el("td", { text: x.group }), el("td", { class: "num", text: x.count }))));
+    const k = $("posKey"); clear(k); k.append(mappingLink());
+  }
+
+  /* ---------------- ขั้น 6: ผลรวม ---------------- */
+  async function runFinal() {
+    const fd = anonForm(true); fd.set("alias", "{}");
+    masterFiles().forEach(f => fd.append("files", f, f.name));
+    const r = await guarded("กำลังรวมข้อมูล...", () => post("/finalize", fd));
+    if (!r) return false;
+    S.final = r; S.mapping = r.mapping; renderFinal(); return true;
+  }
+  function renderFinal() {
+    const r = S.final;
+    $("finInfo").textContent = `รวม ${r.rows} แถว • ${r.columns.length} คอลัมน์` + (r.prior_rows ? ` • ต่อกับข้อมูลปีก่อน ${r.prior_rows} แถว` : "") +
+      ` • รหัสที่ใช้: บริษัท ${r.counts.company} • นักศึกษา ${r.counts.student_id} • อาจารย์ ${r.counts.advisor}`;
+    const d = $("finDls"); clear(d); r.outputs.forEach((o, i) => d.append(fileLink(o, i === 0 ? "amber" : "ghost")));
+    bars($("finBars"), r.by_group, "group");
+    previewTable($("finPrevH"), $("finPrevB"), r.columns, r.preview);
+    const k = $("finKey"); clear(k); k.append(mappingLink());
+  }
+
+  /* ---------------- ผูกปุ่ม ---------------- */
+  const drop = $("drop"), input = $("file");
+  input.onchange = () => { addFiles(input.files); input.value = ""; };
+  ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", e => addFiles(e.dataTransfer.files));
+  window.addEventListener("dragover", e => e.preventDefault());
+  window.addEventListener("drop", e => e.preventDefault());       // กันเบราว์เซอร์เปิดไฟล์ที่ลากพลาดนอกกล่อง
+
+  $("toStep2").onclick = toStep2;
+  $("back1").onclick = () => go(1);
+  $("runAnon").onclick = () => runAnon(false);
+  $("selAll").onclick = () => setAll(true); $("selNone").onclick = () => setAll(false);
+  $("keepOrig").onchange = e => { S.keepOrig = e.target.checked; };
+  $("back2").onclick = () => go(2);
+  $("mergeBtn").onclick = () => {
+    document.querySelectorAll("#simList input:checked").forEach(cb => { S.aliasAcc[cb.dataset.name] = cb.dataset.near; });
+    runAnon(true);
+  };
+  $("toStep4").onclick = () => { renderPositions(); go(4); };
+  $("posSearch").oninput = applyFilter; $("posFilter").onchange = applyFilter;
+  $("back3").onclick = () => go(3);
+  $("savePos").onclick = savePos;
+  $("back4").onclick = () => go(4);
+  $("toStep6").onclick = async () => { if (S.final || await runFinal()) go(6); };
+  $("back5").onclick = () => go(5);
+  $("restart").onclick = () => {
+    S.urls.forEach(URL.revokeObjectURL); Object.assign(S, { files: [], kinds: {}, mapping: null, mapping0: null, tables: [], sel: {}, aliasAcc: {}, anon: null, taxo: null, rows: [], posRes: null, final: null, urls: [] });
+    S.maxStep = 1; renderFiles(); go(1);
+  };
+
+  // เตือนก่อนปิด/รีเฟรชหน้า: ผลและรหัสอยู่ในหน้านี้เท่านั้น ถ้าปิดโดยไม่ได้โหลด mapping.json รหัสจะหาย
+  window.addEventListener("beforeunload", e => { if (S.anon) { e.preventDefault(); e.returnValue = ""; } });
+
+  history.replaceState({ step: 1 }, "", "#1");
+  renderFiles(); renderStepper();
+})();
+</script>
+</body>
+</html>

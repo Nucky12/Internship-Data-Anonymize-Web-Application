@@ -1,0 +1,13 @@
+services:
+  web:
+    build: .
+    ports:
+      - "127.0.0.1:5000:5000"   # เปิดเฉพาะเครื่องนี้ ถ้าจะให้คนอื่นเข้าได้ ให้วางหลัง nginx แบบ HTTPS หรือเปลี่ยนเป็น "5000:5000" ภายในเครือข่ายที่เชื่อถือได้
+    environment:
+      MAX_MB: "50"
+      # ALLOWED_HOSTS: "intern-anon.example.ac.th"   # ถ้าวางหลัง reverse proxy ให้ใส่ชื่อเว็บที่ใช้เข้า (และให้ proxy ส่ง Host เดิมมา)
+    restart: unless-stopped
+    read_only: true               # โปรแกรมไม่เขียนอะไรลงดิสก์เลย (ไฟล์ที่อัพโหลดอยู่ในหน่วยความจำ)
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    # ไม่ต้องมี volume: ระบบไม่เก็บข้อมูลใดๆ ไว้บนเซิร์ฟเวอร์

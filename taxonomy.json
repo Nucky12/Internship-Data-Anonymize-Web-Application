@@ -1,0 +1,237 @@
+{
+ "_comment": "กติกาตั้งต้นสำหรับ 'แนะนำ' หมวดตำแหน่งงาน แก้ไฟล์นี้ได้โดยไม่ต้องแตะโค้ด (ผู้ใช้ปรับรายตำแหน่งและกลุ่มได้ในหน้าเว็บ และระบบจำไว้ใน mapping.json)",
+ "version": 1,
+ "categories": [
+  {
+   "code": 1,
+   "name": "Software Engineer / Developer",
+   "group": "Software Development"
+  },
+  {
+   "code": 2,
+   "name": "Mobile Developer",
+   "group": "Software Development"
+  },
+  {
+   "code": 3,
+   "name": "UX/UI Designer",
+   "group": "UX/UI Design"
+  },
+  {
+   "code": 4,
+   "name": "Business Analyst",
+   "group": "Business / System Analysis"
+  },
+  {
+   "code": 5,
+   "name": "System Analyst",
+   "group": "Business / System Analysis"
+  },
+  {
+   "code": 6,
+   "name": "QA / Software Tester",
+   "group": "QA / Testing"
+  },
+  {
+   "code": 7,
+   "name": "Data Analyst",
+   "group": "Data & AI"
+  },
+  {
+   "code": 8,
+   "name": "Data Scientist",
+   "group": "Data & AI"
+  },
+  {
+   "code": 9,
+   "name": "Data Engineer",
+   "group": "Data & AI"
+  },
+  {
+   "code": 10,
+   "name": "AI / Machine Learning Engineer",
+   "group": "Data & AI"
+  },
+  {
+   "code": 11,
+   "name": "DevOps / Cloud Engineer",
+   "group": "Infrastructure / DevOps / IoT"
+  },
+  {
+   "code": 12,
+   "name": "Cybersecurity",
+   "group": "Cybersecurity"
+  },
+  {
+   "code": 13,
+   "name": "Network / Infrastructure",
+   "group": "Infrastructure / DevOps / IoT"
+  },
+  {
+   "code": 14,
+   "name": "IoT Engineer",
+   "group": "Infrastructure / DevOps / IoT"
+  },
+  {
+   "code": 15,
+   "name": "Researcher",
+   "group": "Research"
+  },
+  {
+   "code": 16,
+   "name": "Other / Not Specific",
+   "group": "Other / Not Specific"
+  }
+ ],
+ "rules": {
+  "_comment": "แต่ละรายการคือคำ/นิพจน์ (regex) ที่ใช้ค้นในชื่อตำแหน่ง (ตัวพิมพ์เล็ก) ลำดับการตัดสิน: hard_other -> specific (ใครมาก่อนในชื่อตำแหน่งชนะ) -> generic_dev -> inferred -> ไม่แน่ใจ (หมวด 16)",
+  "hard_other": [
+   "it support",
+   "help ?desk",
+   "technical support",
+   "application support",
+   "appication support",
+   "\\bsupport\\b",
+   "ซัพพอร์ต"
+  ],
+  "specific": {
+   "2": [
+    "mobile",
+    "\\bios\\b",
+    "android",
+    "flutter",
+    "dart",
+    "react native"
+   ],
+   "3": [
+    "\\bux\\b",
+    "\\bui\\b",
+    "ux/",
+    "ux-",
+    "ui/",
+    "ui-",
+    "uxui",
+    "designer",
+    "web design",
+    "\\bdesign\\b",
+    "ออกแบบ"
+   ],
+   "4": [
+    "business analy",
+    "\\bba\\b",
+    "balance sheet",
+    "วิเคราะห์ธุรกิจ"
+   ],
+   "5": [
+    "system analy",
+    "วิเคราะห์ระบบ"
+   ],
+   "6": [
+    "\\bqa\\b",
+    "tester",
+    "testing",
+    "quality assurance",
+    "performance test",
+    "test engineer",
+    "ทดสอบ"
+   ],
+   "7": [
+    "data analy",
+    "analytics",
+    "data analysis",
+    "วิเคราะห์ข้อมูล"
+   ],
+   "8": [
+    "data scien",
+    "วิทยาการข้อมูล"
+   ],
+   "9": [
+    "data engineer",
+    "database",
+    "\\bdba\\b",
+    "\\betl\\b",
+    "data management",
+    "data processing",
+    "data manipulation",
+    "ฐานข้อมูล",
+    "วิศวกรข้อมูล"
+   ],
+   "10": [
+    "\\bai\\b",
+    "machine learning",
+    "\\bml\\b",
+    "\\bnlp\\b",
+    "deep learning",
+    "\\bllm\\b",
+    "ปัญญาประดิษฐ์"
+   ],
+   "11": [
+    "devops",
+    "cloud",
+    "\\bsre\\b"
+   ],
+   "12": [
+    "cyber",
+    "security",
+    "penetration",
+    "pentest",
+    "it audit",
+    "auditor",
+    "it risk",
+    "ความปลอดภัย"
+   ],
+   "13": [
+    "network",
+    "infrastructure",
+    "system admin",
+    "sysadmin",
+    "\\bserver\\b",
+    "เครือข่าย"
+   ],
+   "14": [
+    "\\biot\\b",
+    "embedded",
+    "hardware"
+   ],
+   "15": [
+    "research",
+    "วิจัย",
+    "r&d"
+   ]
+  },
+  "generic_dev": [
+   "นักพัฒนา",
+   "พัฒนาระบบ",
+   "พัฒนาโปรแกรม",
+   "เขียนโปรแกรม",
+   "developer",
+   "\\bdev\\b",
+   "programm",
+   "software",
+   "full ?stack",
+   "front ?-? ?end",
+   "back ?-? ?end",
+   "\\.net",
+   "โปรแกรมเมอร์",
+   "web dev",
+   "ไอที / โปรแกรมเมอร์"
+  ],
+  "inferred": {
+   "4": [
+    "planner",
+    "product owner",
+    "consultant"
+   ],
+   "1": [
+    "engineer"
+   ]
+  },
+  "overrides": {
+   "ba and tester": 6,
+   "ai researcher": 15,
+   "capital and balance sheet management th": 4,
+   "software engineer, backend, capital and balance sheet management th": 4
+  },
+  "fallback_category": 16
+ }
+}
