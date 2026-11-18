@@ -226,7 +226,7 @@ def process_sheet(raw, sheet, mapping, alias, default_year=None, cols=None, head
             if k not in m:
                 if col == "company":
                     near = difflib.get_close_matches(k, list(m), n=1, cutoff=0.85)
-                    if near: print(f"    ? '{k}' คล้าย '{near[0]}' -> ถ้าเป็นที่เดียวกัน ใส่ alias")
+                    if near: print("    ? พบชื่อบริษัทคล้ายกัน 1 คู่ -> ตรวจในหน้าเว็บ")
                 m[k] = f"{label} {next_no(m)}"
             return m[k]
         for c in [c for c in (col, col + "_2") if c in out]: out[c] = out[c].map(enc)
